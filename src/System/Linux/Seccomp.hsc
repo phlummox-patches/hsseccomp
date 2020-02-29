@@ -64,10 +64,20 @@ calling @seccomp_init@ and @seccomp_release@.
 
 Sample code to forbid any syscall other than "@open@":
 
->>> ctx <- seccomp_init SCMP_ACT_KILL
->>> seccomp_rule_add ctx SCMP_ACT_ALLOW SCopen
->>> seccomp_load ctx
->>> seccomp_release ctx
+>>> import System.Posix.Process
+>>> import Control.Monad
+>>> :{
+  pid <- forkProcess $ do
+    ctx <- seccomp_init SCMP_ACT_KILL_PROCESS
+    seccomp_rule_add ctx SCMP_ACT_ALLOW (Right SCopen)
+    seccomp_load ctx
+    seccomp_release ctx
+    Control.Monad.void $ readFile "/dev/null" -- process should die,
+    -- not from 'open' call, but the other syscalls after it
+:}
+
+>>> getProcessStatus True False pid
+Just (Terminated 31 True)
 
 == Example: use seccomp_rule_add_array
 
@@ -81,7 +91,7 @@ Simple example: The following kills all system calls other than opening
 a file for readonly:
 
 > ctx <- S.seccomp_init S.SCMP_ACT_KILL
-> _ <- S.seccomp_rule_add_array ctx S.SCMP_ACT_KILL S.SCopen [S.ArgCmp 1 S.MASQUED_EQ 0x3 0x1]
+> _ <- S.seccomp_rule_add_array ctx S.SCMP_ACT_ALLOW S.SCopen [S.ArgCmp 1 S.MASQUED_EQ 0x3 0x1]
 > _ <- S.seccomp_load ctx
 > S.seccomp_release ctx
 
@@ -337,7 +347,7 @@ seccomp_merge (FilterContext dst) (FilterContext src) =
 -- 
 -- Example:
 --
--- >>> ctx <- seccomp_init SCMP_ACT_KILL
+-- >>> ctx <- seccomp_init SCMP_ACT_KILL_PROCESS
 -- >>> seccomp_syscall_priority ctx SCopen 255 
 --
 -- This specifies that the "@open@" syscall

@@ -163,7 +163,7 @@ data ArgCmpOp =
 -- Example: create an ArgCmp which checks to see if the
 -- first argument is greater than 4.
 --
--- >>> let a = ArgCmp 0 GT 4 0
+-- >>> let a = ArgCmp 0 GT 4
 --
 --
 data ArgCmp = 
